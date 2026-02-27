@@ -253,7 +253,7 @@
                             <div class="font-semibold text-sm text-xs" id="resEmail">—</div>
                         </div>
                         <div>
-                            <div class="text-xs opacity-50 uppercase tracking-wider mb-1">Waktu Masuk</div>
+                            <div class="text-xs opacity-50 uppercase tracking-wider mb-1"  id="resWaktuLabel">Waktu Masuk</div>
                             <div class="font-bold text-sm mono" id="resWaktu" style="color:#86efac;">—</div>
                         </div>
                     </div>
@@ -310,6 +310,8 @@ const errorIcon    = document.getElementById('errorIcon');
 let debounceTimer = null;
 let isSubmitting  = false;
 
+
+
 // Auto-submit: when QR scanner fires Enter, or when input stops changing
 nimInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
@@ -350,16 +352,20 @@ async function submitScan() {
             },
             body: JSON.stringify({ nim }),
         });
-
-        const data = await res.json();
-
+    
+        const status = res.status; // simpan status SEBELUM .json()
+        const data   = await res.json();
+    
         if (data.success) {
             showSuccess(data);
+        } else if (status === 409) {
+            showWarning(data.message);
         } else {
             showError(data.message);
         }
     } catch (err) {
-        showError('Terjadi kesalahan koneksi. Silakan coba lagi.');
+    showError('Terjadi kesalahan koneksi. Silakan coba lagi.');
+
     } finally {
         setLoading(false);
         isSubmitting = false;
@@ -380,26 +386,35 @@ function showSuccess(data) {
     const m = data.mahasiswa;
     const k = data.kunjungan;
 
-    document.getElementById('resNim').textContent     = 'NIM: ' + m.nim;
-    document.getElementById('resNama').textContent    = m.nama;
-    document.getElementById('resJurusan').textContent = m.jurusan;
+    document.getElementById('resNim').textContent      = 'NIM: ' + m.nim;
+    document.getElementById('resNama').textContent     = m.nama;
+    document.getElementById('resJurusan').textContent  = m.jurusan;
     document.getElementById('resAngkatan').textContent = m.angkatan;
-    document.getElementById('resHp').textContent      = m.no_hp || '—';
-    document.getElementById('resEmail').textContent   = m.email;
-    document.getElementById('resWaktu').textContent   = k.waktu_masuk;
-    document.getElementById('resTanggal').textContent = k.tanggal;
+    document.getElementById('resHp').textContent       = m.no_hp || '—';
+    document.getElementById('resEmail').textContent    = m.email;
+    document.getElementById('resTanggal').textContent  = k.tanggal;
+
+    if (data.tipe === 'keluar') {
+        document.getElementById('resWaktuLabel').textContent = 'Waktu Keluar';
+        document.getElementById('resWaktu').textContent      = k.waktu_keluar;
+        document.getElementById('resWaktu').style.color      = '#fb923c'; // oranye
+        showToast('Sampai Jumpa!', `${m.nama} · Durasi: ${k.durasi}`, 'warning');
+    } else {
+        document.getElementById('resWaktuLabel').textContent = 'Waktu Masuk';
+        document.getElementById('resWaktu').textContent      = k.waktu_masuk;
+        document.getElementById('resWaktu').style.color      = '#86efac'; // hijau
+        showToast('Berhasil Dicatat!', `${m.nama} · ${m.jurusan}`, 'success');
+    }
 
     resultArea.classList.remove('hidden');
     successCard.classList.remove('hidden');
     errorCard.classList.add('hidden');
 
-    // Icons
     checkIcon.classList.remove('hidden');
     nimInput.classList.remove('error');
     nimInput.classList.add('success');
     setTimeout(() => nimInput.classList.remove('success'), 2000);
 
-    showToast('Berhasil Dicatat!', `${m.nama} · ${m.jurusan}`, 'success');
     loadRecentScans();
 }
 
@@ -415,6 +430,25 @@ function showError(msg) {
     setTimeout(() => nimInput.classList.remove('error'), 1000);
 
     showToast('Tidak Ditemukan', msg, 'error');
+}
+
+function showWarning(msg) {
+    document.getElementById('errorMsg').innerHTML = msg;
+
+    resultArea.classList.remove('hidden');
+    errorCard.classList.remove('hidden');
+    successCard.classList.add('hidden');
+
+    // Ganti warna card jadi kuning/amber
+    errorCard.style.borderColor = '#f59e0b';
+    errorCard.querySelector('h3').textContent   = '⚠ Sudah Tercatat';
+    errorCard.querySelector('h3').style.color   = '#f59e0b';
+    errorCard.querySelector('.error-icon-wrap, span').textContent = '🕐';
+
+    nimInput.classList.add('error');
+    setTimeout(() => nimInput.classList.remove('error'), 1000);
+
+    showToast('Sudah Tercatat', msg, 'warning');
 }
 
 // Load today's visits
