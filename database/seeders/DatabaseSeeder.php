@@ -6,6 +6,9 @@ use App\Models\Kunjungan;
 use App\Models\Mahasiswa;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -113,5 +116,14 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        User::updateOrCreate(
+            ['email' => 'admin@perpus.unirow.ac.id'],
+            [
+                'name'     => 'Admin Perpustakaan',
+                'email'    => 'admin@perpus.unirow.ac.id',
+                'password' => Hash::make('perpus@unirow2024'),
+            ]
+        );
     }
 }

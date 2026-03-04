@@ -235,6 +235,12 @@
                 <button onclick="applyFilter()" class="btn-primary text-xs px-4 py-2">Filter</button>
                 <button onclick="resetFilter()" class="text-xs font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition"
                         style="color:var(--muted);">Reset</button>
+                <button onclick="exportCsv()" class="flex items-center gap-1.5 text-xs font-medium px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm ml-2">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Export CSV
+                </button>
             </div>
         </div>
 
@@ -497,6 +503,30 @@ function resetFilter() {
     document.getElementById('filterStart').value = '';
     document.getElementById('filterEnd').value   = '';
     if (statsData) renderTable(statsData.terbaru);
+}
+
+function exportCsv() {
+    const start = document.getElementById('filterStart').value;
+    const end   = document.getElementById('filterEnd').value;
+
+    let url = '/dashboard/export'; // Pastikan route ini sudah sesuai dengan di web.php Anda
+
+    // Jika filter tanggal diisi, tambahkan ke URL
+    if (start && end) {
+        if (start > end) {
+            // Memanfaatkan fungsi toast yang sudah Anda pakai di applyFilter()
+            if(typeof showToast === 'function') {
+                showToast('Tanggal Tidak Valid', 'Tanggal mulai harus sebelum tanggal akhir.', 'error');
+            } else {
+                alert('Tanggal mulai harus sebelum tanggal akhir.');
+            }
+            return;
+        }
+        url += `?start=${start}&end=${end}`;
+    }
+
+    // Eksekusi download
+    window.location.href = url;
 }
 
 // Set default filter dates

@@ -6,6 +6,7 @@ use App\Models\Kunjungan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -112,5 +113,58 @@ class DashboardController extends Controller
             'jurusan_populer' => $jurusanPopuler,
             'terbaru'         => $kunjunganTerbaru,
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $query = Kunjungan::with('mahasiswa')->orderBy('waktu_masuk', 'desc');
+
+        // Gunakan parameter 'start' dan 'end' agar seragam dengan fungsi stats()
+        if ($request->filled(['start', 'end'])) {
+            $start = Carbon::parse($request->start)->startOfDay();
+            $end   = Carbon::parse($request->end)->endOfDay();
+            $query->whereBetween('waktu_masuk', [$start, $end]);
+        }
+
+        $fileName = 'Laporan_Kunjungan_' . date('Y-m-d_H-i') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($query) {
+            $file = fopen('php://output', 'w');
+            
+            // Header Kolom
+            fputcsv($file, ['No', 'NIM', 'Nama Mahasiswa', 'Jurusan', 'Waktu Masuk', 'Waktu Keluar', 'Durasi (Menit)']);
+
+            $no = 1;
+            // Gunakan chunk agar server tidak ngelag saat data kunjungan sudah sangat banyak
+            $query->chunk(500, function ($kunjungans) use ($file, &$no) {
+                foreach ($kunjungans as $k) {
+                    $durasi = $k->waktu_keluar 
+                        ? $k->waktu_masuk->diffInMinutes($k->waktu_keluar)
+                        : 'Belum Keluar';
+
+                    fputcsv($file, [
+                        $no++,
+                        $k->nim,
+                        $k->mahasiswa?->nama ?? '-',
+                        $k->mahasiswa?->jurusan ?? '-',
+                        $k->waktu_masuk->format('Y-m-d H:i:s'), // Format standar excel
+                        $k->waktu_keluar?->format('Y-m-d H:i:s') ?? '-',
+                        $durasi
+                    ]);
+                }
+            });
+
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
     }
 }
