@@ -1,270 +1,221 @@
 @extends('layouts.app')
-
 @section('title', 'Dashboard Perpustakaan')
 
 @section('extra_head')
 <style>
-    .stat-card {
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 1.5rem;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.07);
-    }
-    .stat-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        letter-spacing: -0.04em;
-        line-height: 1;
-    }
-    .stat-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin-top: 0.4rem;
-    }
-    .stat-icon {
-        width: 40px; height: 40px;
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
-    }
+    .dash-wrap { max-width:1200px; margin:0 auto; padding:2rem 1.5rem; }
 
-    .chart-container {
-        position: relative;
-        height: 260px;
+    /* Stats grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.75rem;
     }
+    .stat-card {
+        background:var(--card-bg);border:1px solid var(--border);
+        border-radius:12px;padding:1.25rem;
+        transition:transform .2s,box-shadow .2s;
+    }
+    .stat-card:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.07); }
+    .stat-value { font-size:2rem;font-weight:800;letter-spacing:-.04em;line-height:1; }
+    .stat-label { font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:.35rem;color:var(--muted); }
+    .stat-icon  { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem; }
+
+    /* Charts */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .chart-container { position:relative; height:240px; }
 
     /* Table */
-    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .data-table { width:100%;border-collapse:separate;border-spacing:0; }
     .data-table thead th {
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        padding: 0.75rem 1rem;
-        background: var(--paper);
-        border-bottom: 1px solid var(--border);
-        color: var(--muted);
-        position: sticky;
-        top: 0;
-    }
-    .data-table tbody tr {
-        transition: background 0.15s;
-    }
-    .data-table tbody tr:hover td {
-        background: rgba(245,242,235,0.7);
+        font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+        padding:.7rem 1rem;background:var(--paper);border-bottom:1px solid var(--border);
+        color:var(--muted);position:sticky;top:0;z-index:5;white-space:nowrap;
     }
     .data-table tbody td {
-        padding: 0.875rem 1rem;
-        font-size: 0.875rem;
-        border-bottom: 1px solid var(--border);
-        vertical-align: middle;
+        padding:.8rem 1rem;font-size:.85rem;
+        border-bottom:1px solid var(--border);vertical-align:middle;
     }
-    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:last-child td { border-bottom:none; }
+    .data-table tbody tr:hover td { background:rgba(245,242,235,.7); }
 
     .avatar {
-        width: 34px; height: 34px;
-        border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 700;
-        flex-shrink: 0;
+        width:32px;height:32px;border-radius:8px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:.72rem;font-weight:700;flex-shrink:0;
     }
 
     .tab-btn {
-        padding: 0.4rem 0.875rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1.5px solid transparent;
+        padding:.35rem .8rem;border-radius:6px;font-size:.78rem;font-weight:600;
+        cursor:pointer;transition:all .2s;border:1.5px solid transparent;
+        font-family:'Inter',sans-serif;
     }
-    .tab-btn.active {
-        background: var(--ink);
-        color: var(--paper);
+    .tab-btn.active { background:var(--ink);color:var(--paper); }
+    .tab-btn:not(.active) { border-color:var(--border);color:var(--muted); }
+    .tab-btn:not(.active):hover { border-color:var(--ink);color:var(--ink); }
+
+    /* Filter row */
+    .filter-row {
+        display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;
     }
-    .tab-btn:not(.active) {
-        border-color: var(--border);
-        color: var(--muted);
-    }
-    .tab-btn:not(.active):hover {
-        border-color: var(--ink);
-        color: var(--ink);
+    .filter-date {
+        font-size:.78rem;border:1.5px solid var(--border);border-radius:8px;
+        padding:.45rem .75rem;font-family:'Inter',sans-serif;
+        background:var(--card-bg);color:var(--ink);outline:none;
     }
 
-    /* Loading skeleton */
+    /* Skeleton */
     @keyframes shimmer {
-        0%   { background-position: -400px 0; }
-        100% { background-position: 400px 0; }
+        0%{background-position:-400px 0} 100%{background-position:400px 0}
     }
     .skeleton {
-        background: linear-gradient(90deg, var(--border) 25%, #e9e5dc 50%, var(--border) 75%);
-        background-size: 400px 100%;
-        animation: shimmer 1.4s infinite;
-        border-radius: 6px;
+        background:linear-gradient(90deg,var(--border) 25%,#e9e5dc 50%,var(--border) 75%);
+        background-size:400px 100%;animation:shimmer 1.4s infinite;border-radius:6px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+        .stats-grid    { grid-template-columns: repeat(2,1fr); }
+        .charts-grid   { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+        .dash-wrap     { padding:1.25rem .9rem; }
+        .stats-grid    { grid-template-columns: repeat(2,1fr); gap:.75rem; }
+        .stat-value    { font-size:1.6rem; }
+        .stat-card     { padding:1rem; }
+        .charts-grid   { gap:.75rem; }
+        .chart-container { height:200px; }
+        .filter-row    { gap:.5rem; }
+        .filter-date   { font-size:.72rem;padding:.4rem .6rem; }
+        .data-table thead th,
+        .data-table tbody td { padding:.65rem .75rem;font-size:.78rem; }
+    }
+    @media (max-width: 480px) {
+        .stats-grid    { grid-template-columns: 1fr 1fr; }
+        .hide-mobile   { display:none; }
+        .filter-row    { flex-direction:column;align-items:flex-start; }
+        .filter-row > * { width:100%; }
+        .filter-date   { width:100%; }
     }
 </style>
 @endsection
 
 @section('content')
-<div class="max-w-7xl mx-auto px-6 py-10">
+<div class="dash-wrap">
 
-    {{-- Page Header --}}
-    <div class="flex items-end justify-between mb-10 animate-up">
+    {{-- Header --}}
+    <div class="flex items-end justify-between animate-up" style="margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-widest mb-1" style="color:var(--accent);">Analytics</p>
-            <h1 class="text-4xl font-extrabold" style="letter-spacing:-0.03em;">Dashboard</h1>
-            <p class="mt-1 text-sm" style="color:var(--muted);">Monitor aktivitas kunjungan perpustakaan secara real-time</p>
+            <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.25rem;">Analytics</p>
+            <h1 style="font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.03em;">Dashboard</h1>
+            <p style="margin-top:.25rem;font-size:.875rem;color:var(--muted);">Monitor aktivitas kunjungan perpustakaan secara real-time</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('scan.index') }}" class="btn-primary text-sm flex items-center gap-2">
-                <span>📱</span> Scan Masuk
-            </a>
-        </div>
+        <a href="{{ route('scan.index') }}" class="btn-primary">📱 Scan Masuk</a>
     </div>
 
-    {{-- Stats Grid --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-up delay-1">
-        <!-- Hari Ini -->
+    {{-- Stats --}}
+    <div class="stats-grid animate-up delay-1">
         <div class="stat-card">
-            <div class="flex items-start justify-between mb-4">
+            <div class="flex items-start justify-between" style="margin-bottom:1rem;">
                 <div class="stat-icon" style="background:#fff0e6;">📅</div>
                 <span class="badge badge-orange">Hari ini</span>
             </div>
-            <div class="stat-value" id="statHariIni">
-                <div class="skeleton h-10 w-16"></div>
-            </div>
-            <div class="stat-label" style="color:var(--muted);">Kunjungan Hari Ini</div>
+            <div class="stat-value" id="statHariIni"><div class="skeleton" style="height:2rem;width:4rem;"></div></div>
+            <div class="stat-label">Kunjungan Hari Ini</div>
         </div>
-        <!-- Minggu ini -->
         <div class="stat-card">
-            <div class="flex items-start justify-between mb-4">
+            <div class="flex items-start justify-between" style="margin-bottom:1rem;">
                 <div class="stat-icon" style="background:#dbeafe;">📆</div>
                 <span class="badge badge-blue">Minggu ini</span>
             </div>
-            <div class="stat-value" id="statMingguIni">
-                <div class="skeleton h-10 w-16"></div>
-            </div>
-            <div class="stat-label" style="color:var(--muted);">Kunjungan Minggu Ini</div>
+            <div class="stat-value" id="statMingguIni"><div class="skeleton" style="height:2rem;width:4rem;"></div></div>
+            <div class="stat-label">Kunjungan Minggu Ini</div>
         </div>
-        <!-- Bulan ini -->
         <div class="stat-card">
-            <div class="flex items-start justify-between mb-4">
+            <div class="flex items-start justify-between" style="margin-bottom:1rem;">
                 <div class="stat-icon" style="background:#dcfce7;">🗓️</div>
                 <span class="badge badge-green">Bulan ini</span>
             </div>
-            <div class="stat-value" id="statBulanIni">
-                <div class="skeleton h-10 w-16"></div>
-            </div>
-            <div class="stat-label" style="color:var(--muted);">Kunjungan Bulan Ini</div>
+            <div class="stat-value" id="statBulanIni"><div class="skeleton" style="height:2rem;width:4rem;"></div></div>
+            <div class="stat-label">Kunjungan Bulan Ini</div>
         </div>
-        <!-- Total -->
         <div class="stat-card" style="background:var(--ink);border-color:var(--ink);">
-            <div class="flex items-start justify-between mb-4">
-                <div class="stat-icon" style="background:rgba(255,255,255,0.1);">📊</div>
-                <span class="badge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);">All time</span>
+            <div class="flex items-start justify-between" style="margin-bottom:1rem;">
+                <div class="stat-icon" style="background:rgba(255,255,255,.1);">📊</div>
+                <span class="badge" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);">All time</span>
             </div>
-            <div class="stat-value" id="statTotal" style="color:var(--paper);">
-                <div class="skeleton h-10 w-20"></div>
-            </div>
-            <div class="stat-label" style="color:rgba(245,242,235,0.5);">Total Kunjungan</div>
+            <div class="stat-value" id="statTotal" style="color:var(--paper);"><div class="skeleton" style="height:2rem;width:5rem;"></div></div>
+            <div class="stat-label" style="color:rgba(245,242,235,.5);">Total Kunjungan</div>
         </div>
     </div>
 
-    {{-- Charts Row --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-up delay-2">
-
-        {{-- Line Chart - Tren 7 Hari --}}
-        <div class="card p-6 lg:col-span-2">
-            <div class="flex items-center justify-between mb-6">
+    {{-- Charts --}}
+    <div class="charts-grid animate-up delay-2">
+        <div class="card" style="padding:1.5rem;">
+            <div class="flex items-center justify-between" style="margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem;">
                 <div>
-                    <h2 class="font-bold text-base">Tren Kunjungan</h2>
-                    <p class="text-xs mt-0.5" style="color:var(--muted);">Grafik kunjungan harian</p>
+                    <h2 style="font-weight:700;font-size:.95rem;">Tren Kunjungan</h2>
+                    <p style="font-size:.75rem;margin-top:.2rem;color:var(--muted);">Grafik kunjungan harian</p>
                 </div>
-                <div class="flex gap-2" id="chartTabs">
-                    <button class="tab-btn active" data-period="week" onclick="switchChart('week', this)">7 Hari</button>
-                    <button class="tab-btn" data-period="month" onclick="switchChart('month', this)">30 Hari</button>
+                <div style="display:flex;gap:.5rem;" id="chartTabs">
+                    <button class="tab-btn active" onclick="switchChart('week',this)">7 Hari</button>
+                    <button class="tab-btn"        onclick="switchChart('month',this)">30 Hari</button>
                 </div>
             </div>
-            <div class="chart-container">
-                <canvas id="lineChart"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="lineChart"></canvas></div>
         </div>
-
-        {{-- Donut Chart - Jurusan --}}
-        <div class="card p-6">
-            <h2 class="font-bold text-base mb-1">Top Jurusan</h2>
-            <p class="text-xs mb-6" style="color:var(--muted);">Kunjungan bulan ini</p>
-            <div class="chart-container" style="height:200px;">
-                <canvas id="donutChart"></canvas>
-            </div>
-            <div id="jurusanLegend" class="mt-4 space-y-2"></div>
+        <div class="card" style="padding:1.5rem;">
+            <h2 style="font-weight:700;font-size:.95rem;margin-bottom:.3rem;">Top Jurusan</h2>
+            <p style="font-size:.75rem;margin-bottom:1.25rem;color:var(--muted);">Kunjungan bulan ini</p>
+            <div class="chart-container" style="height:180px;"><canvas id="donutChart"></canvas></div>
+            <div id="jurusanLegend" style="margin-top:1rem;display:flex;flex-direction:column;gap:.4rem;"></div>
         </div>
     </div>
 
     {{-- Table --}}
     <div class="card animate-up delay-3">
-        <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-             style="border-bottom:1px solid var(--border);">
-            <div>
-                <h2 class="font-bold text-base">Riwayat Kunjungan</h2>
-                <p class="text-xs mt-0.5" style="color:var(--muted);">10 kunjungan terbaru</p>
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;">
+                <div>
+                    <h2 style="font-weight:700;font-size:.95rem;">Riwayat Kunjungan</h2>
+                    <p style="font-size:.75rem;margin-top:.2rem;color:var(--muted);">10 kunjungan terbaru</p>
+                </div>
             </div>
-
-            {{-- Date Filter --}}
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-medium" style="color:var(--muted);">Dari:</label>
-                    <input type="date" id="filterStart"
-                           class="text-xs border rounded-lg px-3 py-2 font-medium"
-                           style="border-color:var(--border);background:var(--card-bg);">
-                </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-medium" style="color:var(--muted);">Sampai:</label>
-                    <input type="date" id="filterEnd"
-                           class="text-xs border rounded-lg px-3 py-2 font-medium"
-                           style="border-color:var(--border);background:var(--card-bg);">
-                </div>
-                <button onclick="applyFilter()" class="btn-primary text-xs px-4 py-2">Filter</button>
-                <button onclick="resetFilter()" class="text-xs font-medium px-3 py-2 rounded-lg hover:bg-gray-100 transition"
-                        style="color:var(--muted);">Reset</button>
-                <button onclick="exportCsv()" class="flex items-center gap-1.5 text-xs font-medium px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition shadow-sm ml-2">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Export CSV
+            <div class="filter-row">
+                <label style="font-size:.72rem;font-weight:600;color:var(--muted);white-space:nowrap;">Dari:</label>
+                <input type="date" id="filterStart" class="filter-date">
+                <label style="font-size:.72rem;font-weight:600;color:var(--muted);white-space:nowrap;">Sampai:</label>
+                <input type="date" id="filterEnd" class="filter-date">
+                <button onclick="applyFilter()" class="btn-primary" style="font-size:.78rem;padding:.45rem .9rem;">Filter</button>
+                <button onclick="resetFilter()" style="font-size:.78rem;font-weight:500;padding:.45rem .9rem;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);font-family:'Inter',sans-serif;">Reset</button>
+                <button onclick="exportCsv()" style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;font-weight:600;padding:.45rem .9rem;background:#059669;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;">
+                    ↓ Export CSV
                 </button>
             </div>
         </div>
-
-        <div class="overflow-x-auto" style="max-height:480px;overflow-y:auto;">
+        <div style="max-height:440px;overflow-y:auto;overflow-x:auto;">
             <table class="data-table">
                 <thead>
                     <tr>
                         <th class="text-left">#</th>
                         <th class="text-left">Mahasiswa</th>
-                        <th class="text-left">Jurusan</th>
+                        <th class="text-left hide-mobile">Jurusan</th>
                         <th class="text-left">Waktu Masuk</th>
-                        <th class="text-left">Waktu Keluar</th>
+                        <th class="text-left hide-mobile">Waktu Keluar</th>
                         <th class="text-left">Durasi</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr>
-                        <td colspan="6" class="text-center py-12" style="color:var(--muted);">
-                            <div class="flex flex-col items-center gap-2">
-                                <div class="skeleton h-4 w-48 mb-1"></div>
-                                <div class="skeleton h-4 w-36"></div>
-                            </div>
-                        </td>
-                    </tr>
+                    <tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--muted);">
+                        <div class="skeleton" style="height:1rem;width:12rem;margin:0 auto .5rem;"></div>
+                        <div class="skeleton" style="height:1rem;width:9rem;margin:0 auto;"></div>
+                    </td></tr>
                 </tbody>
             </table>
         </div>
@@ -274,14 +225,10 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-// Color palette
 const COLORS = ['#0d0f12','#c8430a','#1a6b3a','#1d4ed8','#7c3aed','#b45309','#0891b2','#be123c'];
-
-let statsData   = null;
-let lineChart   = null;
-let donutChart  = null;
-let currentPeriod = 'week';
+let statsData = null, lineChart = null, donutChart = null;
 
 async function loadStats() {
     try {
@@ -292,187 +239,101 @@ async function loadStats() {
         renderLineChart(data.chart_week);
         renderDonutChart(data.jurusan_populer);
         renderTable(data.terbaru);
-    } catch(e) {
-        console.error('Failed to load stats', e);
-    }
+    } catch(e) { console.error(e); }
 }
 
-function renderStats(stats) {
-    animateCount('statHariIni',  stats.hari_ini);
-    animateCount('statMingguIni', stats.minggu_ini);
-    animateCount('statBulanIni',  stats.bulan_ini);
-    animateCount('statTotal',     stats.total);
+function renderStats(s) {
+    animateCount('statHariIni',  s.hari_ini);
+    animateCount('statMingguIni', s.minggu_ini);
+    animateCount('statBulanIni',  s.bulan_ini);
+    animateCount('statTotal',     s.total);
 }
 
 function animateCount(id, target) {
     const el = document.getElementById(id);
     el.innerHTML = '';
-    let start = 0;
-    const duration = 1000;
-    const step = Math.ceil(target / (duration / 16));
+    let v = 0;
+    const step  = Math.max(1, Math.ceil(target / 60));
     const timer = setInterval(() => {
-        start = Math.min(start + step, target);
-        el.textContent = start.toLocaleString('id-ID');
-        if (start >= target) clearInterval(timer);
+        v = Math.min(v + step, target);
+        el.textContent = v.toLocaleString('id-ID');
+        if (v >= target) clearInterval(timer);
     }, 16);
 }
 
-function renderLineChart(chartData) {
+function renderLineChart(d) {
     const ctx = document.getElementById('lineChart').getContext('2d');
     if (lineChart) lineChart.destroy();
-
     lineChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels:   chartData.map(d => d.tanggal),
+            labels: d.map(x => x.tanggal),
             datasets: [{
-                label: 'Kunjungan',
-                data:  chartData.map(d => d.total),
-                borderColor: '#0d0f12',
-                backgroundColor: 'rgba(13,15,18,0.06)',
-                borderWidth: 2.5,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#0d0f12',
-                pointRadius: 4,
-                pointHoverRadius: 7,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
+                label:'Kunjungan', data:d.map(x => x.total),
+                borderColor:'#0d0f12', backgroundColor:'rgba(13,15,18,.06)',
+                borderWidth:2.5, tension:.4, fill:true,
+                pointBackgroundColor:'#0d0f12', pointRadius:4, pointHoverRadius:6,
+                pointBorderColor:'#fff', pointBorderWidth:2,
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#0d0f12',
-                    titleColor: 'rgba(245,242,235,0.7)',
-                    bodyColor: '#f5f2eb',
-                    padding: 12,
-                    cornerRadius: 8,
-                    callbacks: {
-                        label: ctx => `${ctx.parsed.y} kunjungan`,
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(0,0,0,0.04)' },
-                    ticks: { font: { size: 11, family: 'Sora' }, color: '#9ca3af' }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(0,0,0,0.04)' },
-                    ticks: {
-                        font: { size: 11, family: 'JetBrains Mono' },
-                        color: '#9ca3af',
-                        stepSize: 1,
-                    }
-                }
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#0d0f12', titleColor:'rgba(245,242,235,.7)', bodyColor:'#f5f2eb', padding:10, cornerRadius:8, callbacks:{label:c=>`${c.parsed.y} kunjungan`} } },
+            scales:{
+                x:{ grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10},color:'#9ca3af'} },
+                y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10,family:'JetBrains Mono'},color:'#9ca3af',stepSize:1} }
             }
         }
     });
 }
 
-function renderDonutChart(jurusan) {
+function renderDonutChart(j) {
     const ctx = document.getElementById('donutChart').getContext('2d');
     if (donutChart) donutChart.destroy();
-
-    const labels = jurusan.map(j => j.jurusan.length > 20 ? j.jurusan.slice(0,18) + '…' : j.jurusan);
-    const values = jurusan.map(j => j.total);
-
     donutChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                backgroundColor: COLORS.slice(0, jurusan.length),
-                borderWidth: 3,
-                borderColor: '#fffef9',
-                hoverBorderWidth: 3,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#0d0f12',
-                    titleColor: 'rgba(245,242,235,0.7)',
-                    bodyColor: '#f5f2eb',
-                    padding: 12,
-                    cornerRadius: 8,
-                }
-            }
-        }
+        type:'doughnut',
+        data:{ labels:j.map(x=>x.jurusan.length>18?x.jurusan.slice(0,16)+'…':x.jurusan), datasets:[{data:j.map(x=>x.total),backgroundColor:COLORS.slice(0,j.length),borderWidth:3,borderColor:'#fffef9'}] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d0f12',bodyColor:'#f5f2eb',padding:10,cornerRadius:8}} }
     });
-
-    // Custom legend
-    const legend = document.getElementById('jurusanLegend');
-    legend.innerHTML = jurusan.map((j, i) => `
-        <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-                <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:${COLORS[i]};"></div>
-                <span class="text-xs truncate" style="color:var(--muted);">${j.jurusan}</span>
+    document.getElementById('jurusanLegend').innerHTML = j.map((x,i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+            <div style="display:flex;align-items:center;gap:.5rem;min-width:0;">
+                <div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:${COLORS[i]};"></div>
+                <span style="font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.jurusan}</span>
             </div>
-            <span class="text-xs font-bold mono flex-shrink-0">${j.total}</span>
-        </div>
-    `).join('');
+            <span style="font-size:.72rem;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;">${x.total}</span>
+        </div>`).join('');
 }
 
 function switchChart(period, btn) {
-    currentPeriod = period;
     document.querySelectorAll('#chartTabs .tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
-    if (statsData) {
-        renderLineChart(period === 'week' ? statsData.chart_week : statsData.chart_month);
-    }
+    if (statsData) renderLineChart(period === 'week' ? statsData.chart_week : statsData.chart_month);
 }
 
-function renderTable(rows, isFiltered = false) {
+function renderTable(rows, isFiltered=false) {
     const tbody = document.getElementById('tableBody');
-
-    if (!rows || rows.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="6" class="text-center py-16" style="color:var(--muted);">
-                <div class="text-4xl mb-3">📭</div>
-                <div class="font-medium">Tidak ada data kunjungan${isFiltered ? ' pada rentang tanggal tersebut' : ''}</div>
-            </td></tr>`;
+    if (!rows?.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--muted);">
+            <div style="font-size:2.5rem;margin-bottom:.5rem;">📭</div>
+            Tidak ada data${isFiltered?' pada rentang tanggal tersebut':''}</td></tr>`;
         return;
     }
-
-    tbody.innerHTML = rows.map((k, i) => {
-        const initials = k.nama.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-        const color    = COLORS[i % COLORS.length];
-        const isInside = k.waktu_keluar === '—';
-
-        return `
-        <tr>
-            <td class="text-xs mono" style="color:var(--muted);">#${k.id}</td>
-            <td>
-                <div class="flex items-center gap-3">
-                    <div class="avatar text-xs font-bold" style="background:${color}20;color:${color};">${initials}</div>
-                    <div>
-                        <div class="font-semibold text-sm">${k.nama}</div>
-                        <div class="text-xs mono" style="color:var(--muted);">${k.nim}</div>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <span class="badge badge-gray text-xs">${k.jurusan}</span>
-            </td>
-            <td class="mono text-xs font-medium">${k.waktu_masuk}</td>
-            <td class="mono text-xs" style="color:var(--muted);">${k.waktu_keluar}</td>
-            <td>
-                <span class="badge ${isInside ? 'badge-green' : 'badge-blue'}">
-                    ${isInside ? '🟢 Di dalam' : k.durasi}
-                </span>
-            </td>
+    tbody.innerHTML = rows.map((k,i) => {
+        const init  = k.nama.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const color = COLORS[i % COLORS.length];
+        return `<tr>
+            <td style="font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--muted);">#${k.id}</td>
+            <td><div style="display:flex;align-items:center;gap:.6rem;">
+                <div class="avatar" style="background:${color}20;color:${color};">${init}</div>
+                <div>
+                    <div style="font-weight:600;font-size:.85rem;">${k.nama}</div>
+                    <div style="font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--muted);">${k.nim}</div>
+                </div></div></td>
+            <td class="hide-mobile"><span class="badge badge-gray" style="font-size:.7rem;">${k.jurusan}</span></td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:.78rem;">${k.waktu_masuk}</td>
+            <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted);">${k.waktu_keluar}</td>
+            <td><span class="badge ${k.waktu_keluar==='—'?'badge-green':'badge-blue'}" style="font-size:.7rem;">${k.waktu_keluar==='—'?'🟢 Di dalam':k.durasi}</span></td>
         </tr>`;
     }).join('');
 }
@@ -480,62 +341,34 @@ function renderTable(rows, isFiltered = false) {
 async function applyFilter() {
     const start = document.getElementById('filterStart').value;
     const end   = document.getElementById('filterEnd').value;
-
-    if (!start || !end) {
-        showToast('Filter Tidak Lengkap', 'Isi kedua tanggal terlebih dahulu.', 'warning');
-        return;
-    }
-    if (start > end) {
-        showToast('Tanggal Tidak Valid', 'Tanggal mulai harus sebelum tanggal akhir.', 'error');
-        return;
-    }
-
+    if (!start||!end) { showToast('Filter Tidak Lengkap','Isi kedua tanggal.','warning'); return; }
+    if (start>end)    { showToast('Tanggal Tidak Valid','Tanggal mulai harus sebelum akhir.','error'); return; }
     try {
         const res  = await fetch(`/api/kunjungan/stats?start=${start}&end=${end}`);
         const data = await res.json();
         renderTable(data.filtered, true);
-    } catch(e) {
-        showToast('Gagal memuat data', 'Terjadi kesalahan.', 'error');
-    }
+    } catch(e) { showToast('Gagal','Terjadi kesalahan.','error'); }
 }
 
 function resetFilter() {
-    document.getElementById('filterStart').value = '';
-    document.getElementById('filterEnd').value   = '';
+    document.getElementById('filterStart').value = weekAgo;
+    document.getElementById('filterEnd').value   = today;
     if (statsData) renderTable(statsData.terbaru);
 }
 
 function exportCsv() {
     const start = document.getElementById('filterStart').value;
     const end   = document.getElementById('filterEnd').value;
-
-    let url = '/dashboard/export'; // Pastikan route ini sudah sesuai dengan di web.php Anda
-
-    // Jika filter tanggal diisi, tambahkan ke URL
-    if (start && end) {
-        if (start > end) {
-            // Memanfaatkan fungsi toast yang sudah Anda pakai di applyFilter()
-            if(typeof showToast === 'function') {
-                showToast('Tanggal Tidak Valid', 'Tanggal mulai harus sebelum tanggal akhir.', 'error');
-            } else {
-                alert('Tanggal mulai harus sebelum tanggal akhir.');
-            }
-            return;
-        }
-        url += `?start=${start}&end=${end}`;
-    }
-
-    // Eksekusi download
+    let url = '/dashboard/export';
+    if (start && end) url += `?start=${start}&end=${end}`;
     window.location.href = url;
 }
 
-// Set default filter dates
-const today = new Date().toISOString().split('T')[0];
-const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+const today   = new Date().toISOString().split('T')[0];
+const weekAgo = new Date(Date.now()-7*86400000).toISOString().split('T')[0];
 document.getElementById('filterStart').value = weekAgo;
 document.getElementById('filterEnd').value   = today;
 
-// Auto-refresh every 30 seconds
 loadStats();
 setInterval(loadStats, 30000);
 </script>

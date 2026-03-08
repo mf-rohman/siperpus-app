@@ -28,6 +28,19 @@ class ScanController extends Controller
                 'message' => "Mahasiswa dengan NIM <strong>{$nim}</strong> tidak ditemukan dalam sistem.",
             ], 404);
         }
+
+        if (!$mahasiswa->registrasi) {
+            return response()->json([
+                'success'   => false,
+                'tipe'      => 'belum_registrasi',
+                'message'   => "Mahasiswa ini belum registrasi ke perpustakaan.",
+                'mahasiswa' => [
+                    'nim'     => $mahasiswa->nim,
+                    'nama'    => $mahasiswa->nama,
+                    'jurusan' => $mahasiswa->jurusan ?? '-',
+                ],
+            ], 403);
+        }
     
         // Cek apakah ada kunjungan aktif hari ini (belum keluar)
         $kunjunganAktif = Kunjungan::where('nim', $nim)
